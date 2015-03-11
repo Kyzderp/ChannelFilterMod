@@ -27,7 +27,7 @@ public class LiteModChannelFilter implements ChatFilter, Tickable
 	public String getName() { return "TE Channel Filter"; }
 
 	@Override
-	public String getVersion() { return "1.1.0"; }
+	public String getVersion() { return "1.1.1"; }
 
 	@Override
 	public void init(File configPath) 
@@ -55,7 +55,7 @@ public class LiteModChannelFilter implements ChatFilter, Tickable
 				return false;
 		} //§8[§r§bAnnouncer§r§8]§r§7=§r§8[§r§aMrLobaLoba§r§8] §r§6What is the airspeed velocity of an unladen swallow?§r
 
-		else if (message.matches(".?.?§8\\[§r§bAnnouncer§r§8\\].*")) // TODO: check if correct
+		else if (message.matches(".*§8\\[§r§bAnnouncer§r§8\\].*")) // TODO: check if correct
 		{
 			if (this.configScreen.getShown("MrLobaLoba"))
 				return true;
