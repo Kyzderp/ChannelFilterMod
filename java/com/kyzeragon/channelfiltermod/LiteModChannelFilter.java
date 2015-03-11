@@ -27,7 +27,7 @@ public class LiteModChannelFilter implements ChatFilter, Tickable
 	public String getName() { return "TE Channel Filter"; }
 
 	@Override
-	public String getVersion() { return "1.0.0"; }
+	public String getVersion() { return "1.1.0"; }
 
 	@Override
 	public void init(File configPath) 
@@ -47,17 +47,31 @@ public class LiteModChannelFilter implements ChatFilter, Tickable
 	public boolean onChat(S02PacketChat chatPacket, IChatComponent chat, String message) 
 	{ // "Global", "Help", "Trade", "Local", "Faction", "Ally"
 		String playerName = Minecraft.getMinecraft().thePlayer.getCommandSenderName();
-		// TODO: shop? lobaloba?
-		if (message.matches("§r§8\\[§r§f.§r§8\\]§r§7=.*"))
+		if (message.matches("§r§a\\[Shop\\].*"))
+		{
+			if (this.configScreen.getShown("Shop"))
+				return true;
+			else
+				return false;
+		} //§8[§r§bAnnouncer§r§8]§r§7=§r§8[§r§aMrLobaLoba§r§8] §r§6What is the airspeed velocity of an unladen swallow?§r
+
+		else if (message.matches(".?.?§8\\[§r§bAnnouncer§r§8\\].*")) // TODO: check if correct
+		{
+			if (this.configScreen.getShown("MrLobaLoba"))
+				return true;
+			else
+				return false;
+		}
+		else if (message.matches("§r§8\\[§r§f.§r§8\\]§r§7=.*"))
 		{
 			char ch = message.charAt(9);
-			if (this.configScreen.getShown(ch))
+			if (this.configScreen.getShown("" + ch))
 				return true;
 			else
 			{
-				if (message.matches(".*§a" + playerName + ".*")) // talking in a hidden channel
+				if (message.matches(".*§a" + playerName + "§.*")) // talking in a hidden channel
 				{
-					this.logError("[!] You are talking in a hidden channel: [" + ch + "]");
+					this.logError("§8[§4!§8] §cYou are talking in a hidden channel: §8[§f" + ch + "§8]");
 					return true;
 				}
 				else if (this.configScreen.getStaff() && message.matches(".*§8\\[§r§(6Admin|6Dev|eMod|bAssistant)§r§8\\].*"))
