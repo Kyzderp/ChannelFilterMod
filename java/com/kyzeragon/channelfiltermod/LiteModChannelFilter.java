@@ -95,12 +95,23 @@ public class LiteModChannelFilter implements ChatFilter, Tickable
 	}
 
 	/**
-	 * Logs error message in red text to the user
-	 * @param message The error message
+	 * Logs the message to the user
+	 * @param message The message to log
 	 */
-	private void logError(String message)
-	{
+	public static void logMessage(String message)
+	{// "§8[§2ChannelFilter§8] §a"
 		ChatComponentText displayMessage = new ChatComponentText(message);
+		displayMessage.setChatStyle((new ChatStyle()).setColor(EnumChatFormatting.GREEN));
+		Minecraft.getMinecraft().thePlayer.addChatComponentMessage(displayMessage);
+	}
+
+	/**
+	 * Logs the error message to the user
+	 * @param message The error message to log
+	 */
+	public static void logError(String message)
+	{
+		ChatComponentText displayMessage = new ChatComponentText("§8[§4!§8] §c" + message + " §8[§4!§8]");
 		displayMessage.setChatStyle((new ChatStyle()).setColor(EnumChatFormatting.RED));
 		Minecraft.getMinecraft().thePlayer.addChatComponentMessage(displayMessage);
 	}
