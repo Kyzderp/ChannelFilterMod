@@ -7,7 +7,6 @@ import net.minecraft.client.gui.GuiScreen;
 
 public class ChannelFilterConfigScreen extends GuiScreen 
 {
-	// TODO: display staff, display when name is said
 	private String[] channels = {"Global", "Help", "Trade", "Shop", "Local", "Faction", "Allies", "MrLobaLoba"};
 	private boolean[] isChannelShown;
 	private boolean showStaff;
