@@ -27,12 +27,13 @@ public class LiteModChannelFilter implements ChatFilter, Tickable, OutboundChatL
 	private LinkedList<String> ignoredFacs;
 	private boolean ignoreWildy;
 	private String ignoredRegex;
+	private String onlyRegex;
 
 	@Override
 	public String getName() { return "TE Channel Filter"; }
 
 	@Override
-	public String getVersion() { return "1.2.0"; }
+	public String getVersion() { return "1.2.2"; }
 
 	@Override
 	public void init(File configPath) 
@@ -41,6 +42,7 @@ public class LiteModChannelFilter implements ChatFilter, Tickable, OutboundChatL
 		this.ignoredFacs = new LinkedList<String>();
 		this.ignoreWildy = false;
 		this.ignoredRegex = "";
+		this.onlyRegex = "HerpDerpThisWontBeUsed";
 		this.configScreen = new ChannelFilterConfigScreen();
 		this.configKeyBinding = new KeyBinding("key.channel.config", Keyboard.KEY_SEMICOLON, "key.categories.litemods");
 		LiteLoader.getInput().registerKeyBinding(this.configKeyBinding);
@@ -98,6 +100,12 @@ public class LiteModChannelFilter implements ChatFilter, Tickable, OutboundChatL
 			this.sentCmd = false;
 			return false;
 		}
+		else if (!this.onlyRegex.equals("HerpDerpThisWontBeUsed"))
+		{
+			String rawText = message.replaceAll("§.", "");
+			if (!rawText.matches(this.onlyRegex))
+				return false;
+		}
 		return true;
 	}
 
@@ -124,7 +132,19 @@ public class LiteModChannelFilter implements ChatFilter, Tickable, OutboundChatL
 				"help §7- §aDisplays this help message. Herpaderp."};
 				for (String command: commands)
 					this.logMessage("/cf " + command, false);
+				this.logMessage("§2Wiki:§a https://github.com/Kyzderp/ChannelFilterMod/wiki", false);
 			} // help
+			else if (tokens[1].equalsIgnoreCase("only"))
+			{
+				if (tokens.length > 2 && tokens[2].equalsIgnoreCase("clear"))
+				{
+					this.onlyRegex = "HerpDerpThisWontBeUsed";
+					this.logMessage("onlyRegex cleared.", true);
+					return;
+				}
+				this.onlyRegex = message.replaceFirst("/cf only |/channelfilter only", "");
+				this.logMessage("onlyRegex set to: " + this.onlyRegex, true);
+			} // only
 			else if (tokens[1].equalsIgnoreCase("ignore"))
 			{
 				if (tokens.length == 2)
@@ -145,11 +165,18 @@ public class LiteModChannelFilter implements ChatFilter, Tickable, OutboundChatL
 				else if (tokens[2].equalsIgnoreCase("clear"))
 				{
 					this.ignoredFacs.clear();
+					this.ignoreWildy = false;
 					this.logMessage("Cleared ignore list.", true);
 					return;
 				} // cf ignore clear
 				else if (tokens[2].equalsIgnoreCase("wilderness"))
 				{
+					if (this.ignoreWildy)
+					{
+						this.ignoreWildy = false;
+						this.logMessage("No longer ignoring players without a faction.", true);
+						return;
+					}
 					this.ignoreWildy = true;
 					this.logMessage("Now ignoring players without a faction.", true);
 					return;
@@ -205,6 +232,7 @@ public class LiteModChannelFilter implements ChatFilter, Tickable, OutboundChatL
 	/**
 	 * Logs the message to the user
 	 * @param message The message to log
+	 * @param addPrefix Whether to add the mod-specific prefix or not
 	 */
 	public static void logMessage(String message, boolean addPrefix)
 	{// "§8[§2ChannelFilter§8] §a"
