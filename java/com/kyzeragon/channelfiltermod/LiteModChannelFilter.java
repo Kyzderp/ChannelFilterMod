@@ -33,7 +33,7 @@ public class LiteModChannelFilter implements ChatFilter, Tickable, OutboundChatL
 	public String getName() { return "TE Channel Filter"; }
 
 	@Override
-	public String getVersion() { return "1.2.2"; }
+	public String getVersion() { return "1.3.0"; }
 
 	@Override
 	public void init(File configPath) 
@@ -57,11 +57,32 @@ public class LiteModChannelFilter implements ChatFilter, Tickable, OutboundChatL
 	@Override
 	public boolean onChat(S02PacketChat chatPacket, IChatComponent chat, String message) 
 	{ // "Global", "Help", "Trade", "Local", "Faction", "Ally"
-		String playerName = Minecraft.getMinecraft().thePlayer.getCommandSenderName();
+		String playerName;
+		if (Minecraft.getMinecraft() != null && Minecraft.getMinecraft().thePlayer != null)
+			playerName = Minecraft.getMinecraft().thePlayer.getCommandSenderName();
+		else
+			return true;
 		if (message.matches("§r§a\\[Shop\\].*"))
 			return this.configScreen.getShown("Shop");
 		else if (message.matches(".*§8\\[§r§bAnnouncer§r§8\\].*"))
 			return this.configScreen.getShown("MrLobaLoba");
+		else if (message.matches(".*§r§8\\[§r§dPM§r§8\\]§r§7=.*"))
+		{
+			boolean result = this.configScreen.getShown("PM");
+			if (this.configScreen.getAutoReply() && !result
+					&& message.matches(".*§r§8\\[§r§dPM§r§8\\]§r§7=.* me§.*") 
+					&& !message.matches(".*§r§8\\[§r§dPM§r§8\\]§r§7=.*" + playerName + " -> me§.*"))
+				Minecraft.getMinecraft().thePlayer.sendChatMessage("/r This user has PM disabled and cannot see your messages.");
+			else if (!result && message.matches(".*§r§8\\[§r§dPM§r§8\\]§r§7=.*me ->.*")
+					&& !message.matches(".*§r§8\\[§r§dPM§r§8\\].*This user has PM disabled.*"))
+			{
+				this.logError("You currently have PM disabled.");
+				return true;
+			}
+			return result;
+		}//§r §r§8[§r§dPM§r§8]§r§7=§r§8[§r§eme -> Kyzeragon§r§8]§r§d a§r
+		// §r §r§8[§r§dPM§r§8]§r§7=§r§8[§r§eme -> Kyzer§r§8]§r§d a§r
+
 		else if (message.matches("§r§8\\[§r§f.§r§8\\]§r§7=.*"))
 		{
 			char ch = message.charAt(9);
@@ -77,7 +98,6 @@ public class LiteModChannelFilter implements ChatFilter, Tickable, OutboundChatL
 				else if (!this.ignoredRegex.equals("") 
 						&& message.toLowerCase().matches(".*§r§8\\[§r§9.?(" + this.ignoredRegex + ").*"))
 					return false;
-				//§r§8[§r§fG§r§8]§r§7=§r§8[§r§9?Invision§r§8]§r§7=§r§8[§r§bVip§r§8]§r§7=§r§8[§r§aKyzer§r§8] §r§fugh so much chat§r
 				return true;
 			}
 			else
