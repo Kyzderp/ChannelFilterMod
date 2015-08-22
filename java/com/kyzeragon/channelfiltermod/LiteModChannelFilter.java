@@ -236,7 +236,6 @@ public class LiteModChannelFilter implements ChatFilter, Tickable, OutboundChatL
 					this.ignoredRegex += fac + "|";
 				this.ignoredRegex = this.ignoredRegex.substring(0, this.ignoredRegex.length() - 1);
 			}
-			System.out.println("ignoredRegex: " + this.ignoredRegex);
 		}
 	}
 
