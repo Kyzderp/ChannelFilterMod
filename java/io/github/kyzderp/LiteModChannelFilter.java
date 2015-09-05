@@ -1,4 +1,4 @@
-package com.kyzeragon.channelfiltermod;
+package io.github.kyzderp;
 
 import java.io.File;
 import java.util.LinkedList;
@@ -28,12 +28,14 @@ public class LiteModChannelFilter implements ChatFilter, Tickable, OutboundChatL
 	private boolean ignoreWildy;
 	private String ignoredRegex;
 	private String onlyRegex;
+	private int autoReplyCooldown;
+	private LinkedList<String> toSend;
 
 	@Override
 	public String getName() { return "TE Channel Filter"; }
 
 	@Override
-	public String getVersion() { return "1.3.0"; }
+	public String getVersion() { return "1.3.1"; }
 
 	@Override
 	public void init(File configPath) 
@@ -44,6 +46,8 @@ public class LiteModChannelFilter implements ChatFilter, Tickable, OutboundChatL
 		this.ignoredRegex = "";
 		this.onlyRegex = "HerpDerpThisWontBeUsed";
 		this.configScreen = new ChannelFilterConfigScreen();
+		this.autoReplyCooldown = 50;
+		this.toSend = new LinkedList<String>();
 		this.configKeyBinding = new KeyBinding("key.channel.config", Keyboard.KEY_SEMICOLON, "key.categories.litemods");
 		LiteLoader.getInput().registerKeyBinding(this.configKeyBinding);
 	}
@@ -72,7 +76,14 @@ public class LiteModChannelFilter implements ChatFilter, Tickable, OutboundChatL
 			if (this.configScreen.getAutoReply() && !result
 					&& message.matches(".*§r§8\\[§r§dPM§r§8\\]§r§7=.* me§.*") 
 					&& !message.matches(".*§r§8\\[§r§dPM§r§8\\]§r§7=.*" + playerName + " -> me§.*"))
-				Minecraft.getMinecraft().thePlayer.sendChatMessage("/r This user has PM disabled and cannot see your messages.");
+			{//§r §r§8[§r§dPM§r§8]§r§7=§r§8[§r§eKyzer
+				String[] othername = message.split("\\[§r§dPM§r§8\\]§r§7=§r§8\\[§r§e| -> me§");
+				if (othername.length == 3)
+				{
+					othername[1] = othername[1].replaceAll("§.|§", "");
+					this.toSend.addLast("/m " + othername[1] + " This user has PM disabled and cannot see your messages.");
+				}
+			}
 			else if (!result && message.matches(".*§r§8\\[§r§dPM§r§8\\]§r§7=.*me ->.*")
 					&& !message.matches(".*§r§8\\[§r§dPM§r§8\\].*This user has PM disabled.*"))
 			{
@@ -245,6 +256,15 @@ public class LiteModChannelFilter implements ChatFilter, Tickable, OutboundChatL
 		if (inGame && minecraft.currentScreen == null && this.configKeyBinding.isPressed())
 		{
 			minecraft.displayGuiScreen(this.configScreen);
+		}
+
+		// Queue for processing auto replies to PM's to avoid being kicked for spam
+		if (this.autoReplyCooldown < 50)
+			this.autoReplyCooldown++;
+		if (inGame && !this.toSend.isEmpty() && this.autoReplyCooldown == 50)
+		{
+			Minecraft.getMinecraft().thePlayer.sendChatMessage(this.toSend.removeFirst());
+			this.autoReplyCooldown = 0;
 		}
 	}
 

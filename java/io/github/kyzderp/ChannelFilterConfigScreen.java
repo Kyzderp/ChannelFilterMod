@@ -1,4 +1,4 @@
-package com.kyzeragon.channelfiltermod;
+package io.github.kyzderp;
 
 import java.util.LinkedList;
 
