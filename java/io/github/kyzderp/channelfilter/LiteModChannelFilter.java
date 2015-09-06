@@ -1,4 +1,4 @@
-package io.github.kyzderp;
+package io.github.kyzderp.channelfilter;
 
 import java.io.File;
 import java.util.LinkedList;
@@ -35,7 +35,7 @@ public class LiteModChannelFilter implements ChatFilter, Tickable, OutboundChatL
 	public String getName() { return "TE Channel Filter"; }
 
 	@Override
-	public String getVersion() { return "1.3.1"; }
+	public String getVersion() { return "1.3.2"; }
 
 	@Override
 	public void init(File configPath) 

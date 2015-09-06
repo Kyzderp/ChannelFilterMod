@@ -1,4 +1,4 @@
-package io.github.kyzderp;
+package io.github.kyzderp.channelfilter;
 
 import java.util.LinkedList;
 
@@ -158,11 +158,14 @@ public class ChannelFilterConfigScreen extends GuiScreen
 	{
 		if (c.equalsIgnoreCase("pm"))
 			return this.pm;
-		return this.getShown(ch.indexOf(c));
+		int index = ch.indexOf(c);
+		if (index == -1)
+			return true;
+		return this.getShown(index);
 	}
 
 	public boolean getAutoReply() { return this.autoMsg; }
-	private boolean getShown(int i) { return this.isChannelShown[i];	}
+	private boolean getShown(int i) { return this.isChannelShown[i]; }
 	public boolean getStaff() { return this.showStaff; }
 	public boolean getSelf() { return this.showSelf; }
 }
