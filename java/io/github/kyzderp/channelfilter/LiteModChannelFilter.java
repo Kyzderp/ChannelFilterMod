@@ -3,23 +3,22 @@ package io.github.kyzderp.channelfilter;
 import java.io.File;
 import java.util.LinkedList;
 
-import org.lwjgl.input.Keyboard;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.KeyBinding;
-import net.minecraft.network.play.client.C01PacketChatMessage;
-import net.minecraft.network.play.server.S02PacketChat;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.ChatStyle;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.IChatComponent;
 
+import org.lwjgl.input.Keyboard;
+
 import com.mumfrey.liteloader.ChatFilter;
-import com.mumfrey.liteloader.OutboundChatListener;
+import com.mumfrey.liteloader.OutboundChatFilter;
 import com.mumfrey.liteloader.Tickable;
 import com.mumfrey.liteloader.core.LiteLoader;
+import com.mumfrey.liteloader.core.LiteLoaderEventBroker.ReturnValue;
 
-public class LiteModChannelFilter implements ChatFilter, Tickable, OutboundChatListener
+public class LiteModChannelFilter implements ChatFilter, Tickable, OutboundChatFilter
 {
 	private ChannelFilterConfigScreen configScreen;
 	private static KeyBinding configKeyBinding;
@@ -35,7 +34,7 @@ public class LiteModChannelFilter implements ChatFilter, Tickable, OutboundChatL
 	public String getName() { return "TE Channel Filter"; }
 
 	@Override
-	public String getVersion() { return "1.3.2"; }
+	public String getVersion() { return "1.4.0"; }
 
 	@Override
 	public void init(File configPath) 
@@ -59,7 +58,7 @@ public class LiteModChannelFilter implements ChatFilter, Tickable, OutboundChatL
 	 * Filters out chat messages from the specified channels and with options
 	 */
 	@Override
-	public boolean onChat(S02PacketChat chatPacket, IChatComponent chat, String message) 
+	public boolean onChat(IChatComponent chat, String message, ReturnValue<IChatComponent> newMessage) 
 	{ // "Global", "Help", "Trade", "Local", "Faction", "Ally"
 		String playerName;
 		if (Minecraft.getMinecraft() != null && Minecraft.getMinecraft().thePlayer != null)
@@ -141,7 +140,7 @@ public class LiteModChannelFilter implements ChatFilter, Tickable, OutboundChatL
 	}
 
 	@Override
-	public void onSendChatMessage(C01PacketChatMessage packet, String message) 
+	public boolean onSendChatMessage(String message) 
 	{
 		String[] tokens = message.split(" ");
 		if (tokens[0].equalsIgnoreCase("/channelfilter") || tokens[0].equalsIgnoreCase("/cf"))
@@ -151,7 +150,7 @@ public class LiteModChannelFilter implements ChatFilter, Tickable, OutboundChatL
 			{
 				this.logMessage("§2" + this.getName() + " §8[§2v" + this.getVersion() + "§8] §aby Kyzeragon", false);
 				this.logMessage("Type §2/channelfilter help §aor §2/cf help §afor commands.", false);
-				return;
+				return false;
 			} // cf
 			else if (tokens[1].equalsIgnoreCase("help"))
 			{
@@ -171,7 +170,7 @@ public class LiteModChannelFilter implements ChatFilter, Tickable, OutboundChatL
 				{
 					this.onlyRegex = "HerpDerpThisWontBeUsed";
 					this.logMessage("onlyRegex cleared.", true);
-					return;
+					return false;
 				}
 				this.onlyRegex = message.replaceFirst("/cf only |/channelfilter only", "");
 				this.logMessage("onlyRegex set to: " + this.onlyRegex, true);
@@ -183,7 +182,7 @@ public class LiteModChannelFilter implements ChatFilter, Tickable, OutboundChatL
 					if (this.ignoredFacs.isEmpty())
 					{
 						this.logMessage("Not currently ignoring any factions.", true);
-						return;
+						return false;
 					}
 					String result = "Currently ignoring faction(s):";
 					if (this.ignoreWildy)
@@ -191,14 +190,14 @@ public class LiteModChannelFilter implements ChatFilter, Tickable, OutboundChatL
 					for (String fac: this.ignoredFacs)
 						result += " " + fac + ",";
 					this.logMessage(result.substring(0, result.length() - 1), true);
-					return;
+					return false;
 				} // cf ignore
 				else if (tokens[2].equalsIgnoreCase("clear"))
 				{
 					this.ignoredFacs.clear();
 					this.ignoreWildy = false;
 					this.logMessage("Cleared ignore list.", true);
-					return;
+					return false;
 				} // cf ignore clear
 				else if (tokens[2].equalsIgnoreCase("wilderness"))
 				{
@@ -206,16 +205,16 @@ public class LiteModChannelFilter implements ChatFilter, Tickable, OutboundChatL
 					{
 						this.ignoreWildy = false;
 						this.logMessage("No longer ignoring players without a faction.", true);
-						return;
+						return false;
 					}
 					this.ignoreWildy = true;
 					this.logMessage("Now ignoring players without a faction.", true);
-					return;
+					return false;
 				} // cf ignore wilderness
 				else if (tokens.length > 3)
 				{
 					this.logError("Too many parameters! See /cf help for usage information");
-					return;
+					return false;
 				} // too many args
 				else
 				{
@@ -223,7 +222,7 @@ public class LiteModChannelFilter implements ChatFilter, Tickable, OutboundChatL
 					if (!fac.matches("[0-9A-Za-z]+"))
 					{
 						this.logError("Invalid faction name; must be alphanumeric: " + fac);
-						return;
+						return false;
 					}
 					if (this.ignoredFacs.contains(fac))
 					{
@@ -247,7 +246,9 @@ public class LiteModChannelFilter implements ChatFilter, Tickable, OutboundChatL
 					this.ignoredRegex += fac + "|";
 				this.ignoredRegex = this.ignoredRegex.substring(0, this.ignoredRegex.length() - 1);
 			}
-		}
+			return false;
+		} // if channelfilter command
+		return true;
 	}
 
 	@Override
