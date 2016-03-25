@@ -10,7 +10,8 @@ public class ChannelFilterConfigScreen extends GuiScreen
 	private final int offset = 15;
 	private final int poffset = 10;
 	
-	private String[] channels = {"Global", "Help", "Trade", "Shop", "Local", "Faction", "Allies", "MrLobaLoba"};
+	private String[] channels = {"Global", "World", "Help", "Trade", "Shop", "Local", 
+			"Faction", "Allies", "MrLobaLoba"};
 	private boolean[] isChannelShown;
 	private boolean showStaff;
 	private boolean showSelf;
@@ -18,14 +19,16 @@ public class ChannelFilterConfigScreen extends GuiScreen
 	private boolean pm;
 	private LinkedList<String> ch = new LinkedList<String>();
 	private int cooldown; // cooldown for clicking cuz buttons are dumb
+	
+	private final int numChannels = this.channels.length;
 
 
 	public ChannelFilterConfigScreen()
 	{
 		super();
-		this.isChannelShown = new boolean[channels.length];
-		String[] letters = {"G", "H", "T", "Shop", "L", "F", "A", "MrLobaLoba"};
-		for (int i = 0; i < channels.length; i++)
+		this.isChannelShown = new boolean[this.numChannels];
+		String[] letters = {"G", "W", "H", "T", "Shop", "L", "F", "A", "MrLobaLoba"};
+		for (int i = 0; i < this.numChannels; i++)
 		{
 			this.isChannelShown[i] = true;
 			this.ch.addLast(letters[i]);
@@ -43,17 +46,20 @@ public class ChannelFilterConfigScreen extends GuiScreen
 		this.drawDefaultBackground();
 		for (int i = 0; i < channels.length; i++)
 		{
-			if (i < 4)
+			if (i < (this.numChannels + 1)/2)
 				this.buttonList.add(new GuiButton(i, this.width/2 - 152, 
 						this.height/2 - 60 - offset + 25*i, 150, 20, ""));
 			else
 				this.buttonList.add(new GuiButton(i, this.width/2 + 2, 
-						this.height/2 - 160 - offset + 25*i, 150, 20, ""));
+						this.height/2 - 160 - 25 - offset + 25*i, 150, 20, ""));
 		}
-		this.buttonList.add(new GuiButton(8, this.width/2 - 152, this.height/2 + 40 - offset, 124, 20, ""));
-		this.buttonList.add(new GuiButton(9, this.width/2 - 24, this.height/2 + 40 - offset, 22, 20, ""));
-		this.buttonList.add(new GuiButton(10, this.width/2 - 152, this.height/2 + 60 + poffset, 150, 20, ""));
-		this.buttonList.add(new GuiButton(11, this.width/2 + 2, this.height/2 + 60 + poffset, 150, 20, ""));
+		// PM
+		this.buttonList.add(new GuiButton(this.numChannels, this.width/2 + 2, this.height/2 + 40 - offset, 124, 20, ""));
+		this.buttonList.add(new GuiButton(this.numChannels + 1, this.width/2 + 2 + 128, this.height/2 + 40 - offset, 22, 20, ""));
+		// Show staff
+		this.buttonList.add(new GuiButton(this.numChannels + 2, this.width/2 - 152, this.height/2 + 60 + poffset, 150, 20, ""));
+		// Show own name
+		this.buttonList.add(new GuiButton(this.numChannels + 3, this.width/2 + 2, this.height/2 + 60 + poffset, 150, 20, ""));
 	}
 
 	@Override
@@ -74,7 +80,7 @@ public class ChannelFilterConfigScreen extends GuiScreen
 		String display;
 		int color = 0x88FFAA;
 		GuiButton button;
-		for (int i = 0; i < channels.length; i++)
+		for (int i = 0; i < this.numChannels; i++)
 		{
 			display = channels[i] + ": Shown";
 			color = 0x88FFAA;
@@ -83,13 +89,14 @@ public class ChannelFilterConfigScreen extends GuiScreen
 				color = 0xFF8888;
 				display = channels[i] + ": Hidden";
 			}
-			if (i < 4)
+			if (i < (this.numChannels + 1)/2)
 				this.drawCenteredString(fontRendererObj, display, 
 						this.width/2 - 152 + 75, this.height/2 - 60 - offset + 25*i + 6, color);
 			else
 				this.drawCenteredString(fontRendererObj, display, 
-						this.width/2 + 2 + 75, this.height/2 - 160 - offset + 25*i + 6, color);
+						this.width/2 + 2 + 75, this.height/2 - 25 - 160 - offset + 25*i + 6, color);
 		}
+		
 		color = 0x88FFAA;
 		display = "PM: Shown";
 		if (!this.pm)
@@ -98,7 +105,7 @@ public class ChannelFilterConfigScreen extends GuiScreen
 			display = "PM: Hidden";
 		}
 		this.drawCenteredString(fontRendererObj, display, 
-				this.width/2 - 152 + 61, this.height/2 + 40 - offset + 6, color);
+				this.width/2 + 2 + 65, this.height/2 + 40 - offset + 6, color);
 		
 		color = 0x88FFAA;
 		display = "\u26A0";
@@ -108,7 +115,7 @@ public class ChannelFilterConfigScreen extends GuiScreen
 			display = "\u26A0";
 		}
 		this.drawCenteredString(fontRendererObj, display, 
-				this.width/2 - 12, this.height/2 + 40 - offset + 6, color);
+				this.width/2 + 2 + 140, this.height/2 + 40 - offset + 6, color);
 		
 		color = 0x88FFAA;
 		display = "Always Show Staff: True";
@@ -135,15 +142,15 @@ public class ChannelFilterConfigScreen extends GuiScreen
 	protected void actionPerformed(GuiButton button)
 	{
 		int i = button.id;
-		if (i < 8) // channel buttons
+		if (i < this.numChannels) // channel buttons
 			this.isChannelShown[i] = !this.isChannelShown[i];
-		else if (i == 8)
+		else if (i == this.numChannels)
 			this.pm = !this.pm;
-		else if (i == 9)
+		else if (i == this.numChannels + 1)
 			this.autoMsg = !this.autoMsg;
-		else if (i == 10)
+		else if (i == this.numChannels + 2)
 			this.showStaff = !this.showStaff;
-		else if (i == 11)
+		else if (i == this.numChannels + 3)
 			this.showSelf = !this.showSelf;
 		this.updateScreen();
 	}
@@ -154,6 +161,11 @@ public class ChannelFilterConfigScreen extends GuiScreen
 		super.updateScreen();
 	}
 
+	/**
+	 * Get whether the channel is shown or not, by its prefix
+	 * @param c
+	 * @return
+	 */
 	public boolean getShown(String c)
 	{
 		if (c.equalsIgnoreCase("pm"))

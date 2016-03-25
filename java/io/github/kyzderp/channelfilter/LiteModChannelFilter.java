@@ -22,11 +22,13 @@ public class LiteModChannelFilter implements ChatFilter, Tickable, OutboundChatF
 {
 	private ChannelFilterConfigScreen configScreen;
 	private static KeyBinding configKeyBinding;
-	private boolean sentCmd;
-	private LinkedList<String> ignoredFacs;
-	private boolean ignoreWildy;
-	private String ignoredRegex;
-	private String onlyRegex;
+	
+	private CommandHandler cmdHandler;
+	public LinkedList<String> ignoredFacs;
+	public boolean ignoreWildy;
+	public String ignoredRegex;
+	public String onlyRegex;
+	
 	private int autoReplyCooldown;
 	private LinkedList<String> toSend;
 
@@ -34,12 +36,12 @@ public class LiteModChannelFilter implements ChatFilter, Tickable, OutboundChatF
 	public String getName() { return "TE Channel Filter"; }
 
 	@Override
-	public String getVersion() { return "1.4.0"; }
+	public String getVersion() { return "2.0.0"; }
 
 	@Override
 	public void init(File configPath) 
 	{
-		this.sentCmd = false;
+		this.cmdHandler = new CommandHandler(this);
 		this.ignoredFacs = new LinkedList<String>();
 		this.ignoreWildy = false;
 		this.ignoredRegex = "";
@@ -61,57 +63,78 @@ public class LiteModChannelFilter implements ChatFilter, Tickable, OutboundChatF
 	public boolean onChat(IChatComponent chat, String message, ReturnValue<IChatComponent> newMessage) 
 	{ // "Global", "Help", "Trade", "Local", "Faction", "Ally"
 		String playerName;
+		String strippedMessage = message.replaceAll("\u00A7.", "");
+		
+		// Get the user's name
 		if (Minecraft.getMinecraft() != null && Minecraft.getMinecraft().thePlayer != null)
 			playerName = Minecraft.getMinecraft().thePlayer.getCommandSenderName();
 		else
 			return true;
+		
+		// Shop
 		if (message.matches("§r§a\\[Shop\\].*"))
 			return this.configScreen.getShown("Shop");
+		// Announcer
 		else if (message.matches(".*§8\\[§r§bAnnouncer§r§8\\].*"))
 			return this.configScreen.getShown("MrLobaLoba");
+		// PM's
 		else if (message.matches(".*§r§8\\[§r§dPM§r§8\\]§r§7=.*"))
 		{
-			boolean result = this.configScreen.getShown("PM");
-			if (this.configScreen.getAutoReply() && !result
-					&& message.matches(".*§r§8\\[§r§dPM§r§8\\]§r§7=.* me§.*") 
-					&& !message.matches(".*§r§8\\[§r§dPM§r§8\\]§r§7=.*" + playerName + " -> me§.*"))
-			{//§r §r§8[§r§dPM§r§8]§r§7=§r§8[§r§eKyzer
-				String[] othername = message.split("\\[§r§dPM§r§8\\]§r§7=§r§8\\[§r§e| -> me§");
+			boolean isPMenabled = this.configScreen.getShown("PM");
+			if (isPMenabled)
+				return true;
+			
+			// Someone is sending us a PM, but we want to send an automated message to reply
+			if (this.configScreen.getAutoReply()
+					&& message.matches("(?i)(.*§r§8\\[§r§dPM§r§8\\]§r§7=.* me§.*)") 
+					&& !message.matches("(?i)(.*§r§8\\[§r§dPM§r§8\\]§r§7=.*" + playerName + " -> me§.*)"))
+			{
+				// Get the name of whoever is PM'ing us
+				String[] othername = message.split("(?i)(\\[§r§dPM§r§8\\]§r§7=§r§8\\[§r§e| -> me§)");
 				if (othername.length == 3)
 				{
-					othername[1] = othername[1].replaceAll("§.|§", "");
-					this.toSend.addLast("/m " + othername[1] + " This user has PM disabled and cannot see your messages.");
+					// TODO: whitelist of usernames
+					String user = othername[1].replaceAll("§.|§", "");
+					this.toSend.addLast("/m " + user + " This user has PM disabled and cannot see your messages.");
 				}
 			}
-			else if (!result && message.matches(".*§r§8\\[§r§dPM§r§8\\]§r§7=.*me ->.*")
-					&& !message.matches(".*§r§8\\[§r§dPM§r§8\\].*This user has PM disabled.*"))
+			// We are sending a PM, but we have PM disabled. Still show it, but also display a warning.
+			else if (message.matches("(?i)(.*§r§8\\[§r§dPM§r§8\\]§r§7=.*me ->.*)")
+					&& !message.matches("(?i)(.*§r§8\\[§r§dPM§r§8\\].*This user has PM disabled.*)"))
 			{
 				this.logError("You currently have PM disabled.");
 				return true;
 			}
-			return result;
-		}//§r §r§8[§r§dPM§r§8]§r§7=§r§8[§r§eme -> Kyzeragon§r§8]§r§d a§r
-		// §r §r§8[§r§dPM§r§8]§r§7=§r§8[§r§eme -> Kyzer§r§8]§r§d a§r
+			return false;
+		}
 
-		else if (message.matches("§r§8\\[§r§f.§r§8\\]§r§7=.*"))
+		// Other normal channels
+		else if (message.matches("§r§8\\[§r§...*"))
 		{
+			// Get the channel character
 			char ch = message.charAt(9);
 			if (this.configScreen.getShown("" + ch))
-			{
+			{ // Shown, this part is just to check for player-set ignored
+				// Show staff
 				if (this.configScreen.getStaff() && message.matches(".*§8\\[§r§(6Admin|6Dev|eMod|bAssistant)§r§8\\].*"))
 					return true;
-				else if (this.configScreen.getSelf()  // someone else mentions your name
+				// Someone mentions your name
+				else if (this.configScreen.getSelf()
 						&& message.toLowerCase().matches(".*"+playerName.toLowerCase()+".*"))
 					return true;
-				else if (this.ignoreWildy && message.matches("§r§8\\[§r§f[GTH]§r§8\\]§r§7=§r§8\\[§r§a.*"))
+				// TODO: ignore users
+				// Ignore wilderness
+				else if (this.ignoreWildy //&& message.matches("§r§8\\[§r§f[GTHW]§r§8\\]§r§7=§r§8\\[§r§a.*"))
+					&& strippedMessage.matches("\\[[GTHW](...?)?\\]=\\[[A-Za-z0-9]+\\] .*"))
 					return false;
+				// Ignore factions
 				else if (!this.ignoredRegex.equals("") 
 						&& message.toLowerCase().matches(".*§r§8\\[§r§9.?(" + this.ignoredRegex + ").*"))
 					return false;
 				return true;
 			}
 			else
-			{
+			{ // Hidden
 				if (message.matches(".*§a" + playerName + "§.*")) // talking in a hidden channel
 				{
 					this.logError("You are talking in a hidden channel: §8[§f" + ch + "§8]");
@@ -124,11 +147,6 @@ public class LiteModChannelFilter implements ChatFilter, Tickable, OutboundChatF
 					return true;
 				return false;
 			}
-		}
-		else if (this.sentCmd && message.matches(".*nknown.*ommand.*"))
-		{
-			this.sentCmd = false;
-			return false;
 		}
 		else if (!this.onlyRegex.equals("HerpDerpThisWontBeUsed"))
 		{
@@ -145,107 +163,7 @@ public class LiteModChannelFilter implements ChatFilter, Tickable, OutboundChatF
 		String[] tokens = message.split(" ");
 		if (tokens[0].equalsIgnoreCase("/channelfilter") || tokens[0].equalsIgnoreCase("/cf"))
 		{
-			this.sentCmd = true;
-			if (tokens.length == 1)
-			{
-				this.logMessage("§2" + this.getName() + " §8[§2v" + this.getVersion() + "§8] §aby Kyzeragon", false);
-				this.logMessage("Type §2/channelfilter help §aor §2/cf help §afor commands.", false);
-				return false;
-			} // cf
-			else if (tokens[1].equalsIgnoreCase("help"))
-			{
-				this.logMessage("§2" + this.getName() + " §8[§2v" + this.getVersion() + "§8] §acommands (alias /channelfilter)", false);
-				String[] commands = {"ignore §7- §aSees the list of currently ignored factions.",
-						"ignore <faction> §7- §aAdds or removes a faction from ignore list.",
-						"ignore wilderness §7- §aIgnores players without a faction.",
-						"ignore clear §7- §aClears the ignore list.",
-				"help §7- §aDisplays this help message. Herpaderp."};
-				for (String command: commands)
-					this.logMessage("/cf " + command, false);
-				this.logMessage("§2Wiki:§a https://github.com/Kyzderp/ChannelFilterMod/wiki", false);
-			} // help
-			else if (tokens[1].equalsIgnoreCase("only"))
-			{
-				if (tokens.length > 2 && tokens[2].equalsIgnoreCase("clear"))
-				{
-					this.onlyRegex = "HerpDerpThisWontBeUsed";
-					this.logMessage("onlyRegex cleared.", true);
-					return false;
-				}
-				this.onlyRegex = message.replaceFirst("/cf only |/channelfilter only", "");
-				this.logMessage("onlyRegex set to: " + this.onlyRegex, true);
-			} // only
-			else if (tokens[1].equalsIgnoreCase("ignore"))
-			{
-				if (tokens.length == 2)
-				{
-					if (this.ignoredFacs.isEmpty())
-					{
-						this.logMessage("Not currently ignoring any factions.", true);
-						return false;
-					}
-					String result = "Currently ignoring faction(s):";
-					if (this.ignoreWildy)
-						result += " Wilderness,";
-					for (String fac: this.ignoredFacs)
-						result += " " + fac + ",";
-					this.logMessage(result.substring(0, result.length() - 1), true);
-					return false;
-				} // cf ignore
-				else if (tokens[2].equalsIgnoreCase("clear"))
-				{
-					this.ignoredFacs.clear();
-					this.ignoreWildy = false;
-					this.logMessage("Cleared ignore list.", true);
-					return false;
-				} // cf ignore clear
-				else if (tokens[2].equalsIgnoreCase("wilderness"))
-				{
-					if (this.ignoreWildy)
-					{
-						this.ignoreWildy = false;
-						this.logMessage("No longer ignoring players without a faction.", true);
-						return false;
-					}
-					this.ignoreWildy = true;
-					this.logMessage("Now ignoring players without a faction.", true);
-					return false;
-				} // cf ignore wilderness
-				else if (tokens.length > 3)
-				{
-					this.logError("Too many parameters! See /cf help for usage information");
-					return false;
-				} // too many args
-				else
-				{
-					String fac = tokens[2].toLowerCase();
-					if (!fac.matches("[0-9A-Za-z]+"))
-					{
-						this.logError("Invalid faction name; must be alphanumeric: " + fac);
-						return false;
-					}
-					if (this.ignoredFacs.contains(fac))
-					{
-						this.ignoredFacs.remove(fac);
-						this.logMessage("No longer ignoring faction " + fac, true);
-					}
-					else
-					{
-						this.ignoredFacs.addFirst(fac);
-						this.logMessage("Now ignoring faction " + fac, true);
-					}
-				} // cf ignore <fac>
-			}
-			else
-				this.logError("Invalid parameters. See /cf help for usage information");
-
-			this.ignoredRegex = "";
-			if (this.ignoredFacs.size() > 0)
-			{
-				for (String fac: this.ignoredFacs)
-					this.ignoredRegex += fac + "|";
-				this.ignoredRegex = this.ignoredRegex.substring(0, this.ignoredRegex.length() - 1);
-			}
+			this.cmdHandler.handleCommand(message);
 			return false;
 		} // if channelfilter command
 		return true;

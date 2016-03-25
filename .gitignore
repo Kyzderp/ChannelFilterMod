@@ -42,4 +42,6 @@ Network Trash Folder
 Temporary Items
 .apdisk
 *.class
-bin/assets/channelfilter/lang/en_US.lang
+bin/
+.classpath
+.settings
