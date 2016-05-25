@@ -1,6 +1,7 @@
 package io.github.kyzderp.channelfilter;
 
 import java.io.File;
+import java.util.HashSet;
 import java.util.LinkedList;
 
 import net.minecraft.client.Minecraft;
@@ -22,26 +23,32 @@ public class LiteModChannelFilter implements ChatFilter, Tickable, OutboundChatF
 {
 	private ChannelFilterConfigScreen configScreen;
 	private static KeyBinding configKeyBinding;
-	
+
 	private CommandHandler cmdHandler;
 	public LinkedList<String> ignoredFacs;
 	public boolean ignoreWildy;
 	public String ignoredRegex;
 	public String onlyRegex;
-	
+
 	private int autoReplyCooldown;
 	private LinkedList<String> toSend;
+
+	private Whitelist whitelist;
+	private Config config;
 
 	@Override
 	public String getName() { return "TE Channel Filter"; }
 
 	@Override
-	public String getVersion() { return "2.0.0"; }
+	public String getVersion() { return "2.1.0"; }
 
 	@Override
 	public void init(File configPath) 
 	{
-		this.cmdHandler = new CommandHandler(this);
+		this.whitelist = new Whitelist();
+		this.config = new Config();
+
+		this.cmdHandler = new CommandHandler(this, this.whitelist);
 		this.ignoredFacs = new LinkedList<String>();
 		this.ignoreWildy = false;
 		this.ignoredRegex = "";
@@ -49,6 +56,7 @@ public class LiteModChannelFilter implements ChatFilter, Tickable, OutboundChatF
 		this.configScreen = new ChannelFilterConfigScreen();
 		this.autoReplyCooldown = 50;
 		this.toSend = new LinkedList<String>();
+
 		this.configKeyBinding = new KeyBinding("key.channel.config", Keyboard.KEY_SEMICOLON, "key.categories.litemods");
 		LiteLoader.getInput().registerKeyBinding(this.configKeyBinding);
 	}
@@ -64,13 +72,13 @@ public class LiteModChannelFilter implements ChatFilter, Tickable, OutboundChatF
 	{ // "Global", "Help", "Trade", "Local", "Faction", "Ally"
 		String playerName;
 		String strippedMessage = message.replaceAll("\u00A7.", "");
-		
+
 		// Get the user's name
 		if (Minecraft.getMinecraft() != null && Minecraft.getMinecraft().thePlayer != null)
 			playerName = Minecraft.getMinecraft().thePlayer.getCommandSenderName();
 		else
 			return true;
-		
+
 		// Shop
 		if (message.matches("§r§a\\[Shop\\].*"))
 			return this.configScreen.getShown("Shop");
@@ -83,26 +91,43 @@ public class LiteModChannelFilter implements ChatFilter, Tickable, OutboundChatF
 			boolean isPMenabled = this.configScreen.getShown("PM");
 			if (isPMenabled)
 				return true;
-			
+
 			// Someone is sending us a PM, but we want to send an automated message to reply
 			if (this.configScreen.getAutoReply()
 					&& message.matches("(?i)(.*§r§8\\[§r§dPM§r§8\\]§r§7=.* me§.*)") 
-					&& !message.matches("(?i)(.*§r§8\\[§r§dPM§r§8\\]§r§7=.*" + playerName + " -> me§.*)"))
+					&& !message.matches("(?i)(.*§r§8\\[§r§dPM§r§8\\]§r§7=.*" + playerName + " -> me§.*)")
+					&& !message.matches("(?i)(.*§r§8\\[§r§dPM§r§8\\].*This user has PM disabled.*)"))
 			{
 				// Get the name of whoever is PM'ing us
 				String[] othername = message.split("(?i)(\\[§r§dPM§r§8\\]§r§7=§r§8\\[§r§e| -> me§)");
 				if (othername.length == 3)
 				{
-					// TODO: whitelist of usernames
 					String user = othername[1].replaceAll("§.|§", "");
-					this.toSend.addLast("/m " + user + " This user has PM disabled and cannot see your messages.");
+					if (this.whitelist.getList().contains(user.toLowerCase()))
+					{
+						// The user is in the whitelist
+						return true;
+					}
+					else
+					{
+						// User is not in the whitelist
+						// Also don't want to spam disable messages back and forth
+						if (!message.contains("This user has PM disabled and cannot see your messages"))
+							this.toSend.addLast("/m " + user + " This user has PM disabled and cannot see your messages.");
+						return false;
+					}
 				}
 			}
-			// We are sending a PM, but we have PM disabled. Still show it, but also display a warning.
+			// We are sending a PM, but we have PM disabled. Still show it, but also display a warning
+			// if target is not whitelisted
 			else if (message.matches("(?i)(.*§r§8\\[§r§dPM§r§8\\]§r§7=.*me ->.*)")
 					&& !message.matches("(?i)(.*§r§8\\[§r§dPM§r§8\\].*This user has PM disabled.*)"))
 			{
-				this.logError("You currently have PM disabled.");
+				try {
+					String user = message.split("(?i)(me -> )")[1].split("§r§8")[0];
+					if (!this.whitelist.getList().contains(user.toLowerCase()))
+						this.logError("You currently have PM disabled.");
+				} catch (NullPointerException e) {}
 				return true;
 			}
 			return false;
@@ -125,7 +150,7 @@ public class LiteModChannelFilter implements ChatFilter, Tickable, OutboundChatF
 				// TODO: ignore users
 				// Ignore wilderness
 				else if (this.ignoreWildy //&& message.matches("§r§8\\[§r§f[GTHW]§r§8\\]§r§7=§r§8\\[§r§a.*"))
-					&& strippedMessage.matches("\\[[GTHW](...?)?\\]=\\[[A-Za-z0-9]+\\] .*"))
+						&& strippedMessage.matches("\\[[GTHW](...?)?\\]=\\[[A-Za-z0-9]+\\] .*"))
 					return false;
 				// Ignore factions
 				else if (!this.ignoredRegex.equals("") 

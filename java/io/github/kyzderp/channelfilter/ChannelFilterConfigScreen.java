@@ -1,18 +1,22 @@
 package io.github.kyzderp.channelfilter;
 
 import java.util.LinkedList;
+import java.util.Set;
 
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 
 public class ChannelFilterConfigScreen extends GuiScreen 
 {
+	private Config config;
+	private Set<String> off;
+	
 	private final int offset = 15;
 	private final int poffset = 10;
 	
 	private String[] channels = {"Global", "World", "Help", "Trade", "Shop", "Local", 
 			"Faction", "Allies", "MrLobaLoba"};
-	private boolean[] isChannelShown;
+	public boolean[] isChannelShown;
 	private boolean showStaff;
 	private boolean showSelf;
 	private boolean autoMsg;
@@ -26,17 +30,21 @@ public class ChannelFilterConfigScreen extends GuiScreen
 	public ChannelFilterConfigScreen()
 	{
 		super();
+		
+		this.config = new Config();
+		this.off = this.config.loadFile();
+		
 		this.isChannelShown = new boolean[this.numChannels];
 		String[] letters = {"G", "W", "H", "T", "Shop", "L", "F", "A", "MrLobaLoba"};
 		for (int i = 0; i < this.numChannels; i++)
 		{
-			this.isChannelShown[i] = true;
 			this.ch.addLast(letters[i]);
+			this.isChannelShown[i] = !off.contains(this.channels[i]);
 		}
 		this.showStaff = true;
 		this.showSelf = true;
 		this.autoMsg = true;
-		this.pm = true;
+		this.pm = !this.off.contains("PM");
 	}
 
 	@Override
@@ -143,9 +151,23 @@ public class ChannelFilterConfigScreen extends GuiScreen
 	{
 		int i = button.id;
 		if (i < this.numChannels) // channel buttons
+		{
 			this.isChannelShown[i] = !this.isChannelShown[i];
+			if (this.isChannelShown[i])
+				this.off.remove(this.channels[i]);
+			else
+				this.off.add(this.channels[i]);
+			this.config.writeFile(this.off);
+		}
 		else if (i == this.numChannels)
+		{
 			this.pm = !this.pm;
+			if (this.pm)
+				this.off.remove("PM");
+			else
+				this.off.add("PM");
+			this.config.writeFile(this.off);
+		}
 		else if (i == this.numChannels + 1)
 			this.autoMsg = !this.autoMsg;
 		else if (i == this.numChannels + 2)
