@@ -15,7 +15,7 @@ public class Whitelist
 	private HashSet<String> whitelist;
 	
 	private final File dirs = new File(Minecraft.getMinecraft().mcDataDir, "liteconfig" + File.separator 
-			+ "config.1.8" + File.separator + "ChannelFilter");
+			+ "config.1.10.2" + File.separator + "ChannelFilter");
 	private final File path = new File(dirs.getPath() + File.separator + "whitelist.txt");
 	
 	public Whitelist()
