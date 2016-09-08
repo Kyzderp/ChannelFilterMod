@@ -87,7 +87,6 @@ public class ChannelFilterConfigScreen extends GuiScreen
 
 		String display;
 		int color = 0x88FFAA;
-		GuiButton button;
 		for (int i = 0; i < this.numChannels; i++)
 		{
 			display = channels[i] + ": Shown";

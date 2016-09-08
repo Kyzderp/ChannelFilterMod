@@ -3,7 +3,6 @@ package io.github.kyzderp.channelfilter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Scanner;
 import java.util.Set;
@@ -15,7 +14,7 @@ import com.mumfrey.liteloader.util.log.LiteLoaderLogger;
 public class Config 
 {
 	private final File dirs = new File(Minecraft.getMinecraft().mcDataDir, "liteconfig" + File.separator 
-			+ "config.1.8" + File.separator + "ChannelFilter");
+			+ "config.1.10.2" + File.separator + "ChannelFilter");
 	private final File path = new File(dirs.getPath() + File.separator + "config.txt");
 	
 	public Config()
