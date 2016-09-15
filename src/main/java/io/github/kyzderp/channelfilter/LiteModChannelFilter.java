@@ -40,7 +40,7 @@ public class LiteModChannelFilter implements ChatFilter, Tickable, OutboundChatF
 	public String getName() { return "TE Channel Filter"; }
 
 	@Override
-	public String getVersion() { return "2.2.0"; }
+	public String getVersion() { return "2.2.1"; }
 
 	@Override
 	public void init(File configPath) 
